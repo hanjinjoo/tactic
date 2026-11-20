@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>전술 바둑판</title>
+<style>
+:root{color-scheme:dark;--bg:#0f1a12;--bar:#16231a;--row:#101c14;--btn:#2b3a2f;--on:#F5A623;--tx:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--tx);touch-action:manipulation;font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+#app{position:fixed;left:0;top:0;width:100%;height:100vh;height:100dvh;display:grid;grid-template-rows:calc(48px + env(safe-area-inset-top,0px)) 36px minmax(0,1fr) 64px calc(56px + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0);padding-right:env(safe-area-inset-right,0)}
+#top{background:var(--bar);display:flex;align-items:center;gap:6px;padding:env(safe-area-inset-top,0) 8px 0}
+#top .mid{flex:1;display:flex;justify-content:center;gap:6px}
+button{font:inherit;font-size:15px;color:var(--tx);background:var(--btn);border:0;border-radius:10px;min-height:44px;min-width:44px;padding:0 12px}
+button.on{background:var(--on);color:#000;font-weight:800}
+#form{background:var(--row);display:flex;align-items:center;justify-content:center;font-weight:700;position:relative}
+#form::after{content:"";position:absolute;left:0;right:0;top:-4px;bottom:-4px}
+#pw{display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
+#svg{touch-action:none;display:block}
+#bench{background:var(--row);display:flex;align-items:center;padding:0 10px;font-size:14px;color:#cfe0d3;overflow-x:auto;white-space:nowrap}
+#bench.strip{justify-content:center;color:#fff}
+#bench .bt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+#bench .ball{margin-left:auto;flex:none;display:flex;flex-direction:column;align-items:center;font-size:11px;font-weight:700;line-height:13px;color:#fff;touch-action:pan-x;padding:2px 6px}
+#tool{background:var(--bar);display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+#tool button{padding:0;font-size:14px;min-height:44px}
+#dlg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:70}
+#dlg.show{display:flex}
+#dlg .box{background:#1d2c21;border-radius:14px;padding:20px;width:min(86%,340px)}
+#dlg p{margin:0 0 16px;line-height:1.5;white-space:pre-line}
+#dlg .bt{display:flex;gap:8px;justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#fff;color:#000;font-weight:700;padding:10px 16px;border-radius:20px;z-index:80;display:none;max-width:90%}
+#saveShade{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:59;display:none}
+#saveShade.show{display:block}
+#saveSheet{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;background:#1d2c21;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 25px rgba(0,0,0,.25)}
+#saveSheet.show{display:block}
+#saveSheet h2{font-size:18px;margin:0 0 18px}
+#saveSheet .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#saveSheet .actions button{min-height:48px}
+#saveClose{display:block;margin:12px 0 0 auto}
+#storageWarn{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:80;display:none;text-align:center;background:#9c2424;color:#fff;font-size:12px;font-weight:bold;padding:4px}
+#land{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+@media (orientation:landscape){#land{display:flex}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <button id="bRoster">명단</button>
+    <div class="mid"><button id="m11">11:11</button><button id="m9">9:9</button></div>
+    <button id="bZone">구역 표시</button>
+  </div>
+  <div id="form"></div>
+  <div id="pw"><svg id="svg"></svg></div>
+  <div id="bench"></div>
+  <div id="tool">
+    <button id="bArrow">화살표</button><button id="bErase">지우개</button><button id="bOpp">상대팀</button><button id="bReset">초기화</button><button id="bSave">저장/공유</button>
+  </div>
+</div>
+<div id="dlg"><div class="box"><p id="dmsg"></p><div class="bt"><button id="dno">취소</button><button id="dyes" class="on">확인</button></div></div></div>
+<div id="toast"></div>
+<div id="storageWarn">저장 공간을 쓸 수 없어요. 이 화면에서만 유지돼요.</div>
+<div id="saveShade" aria-hidden="true"></div>
+<section id="saveSheet" role="dialog" aria-modal="true" aria-labelledby="saveHeading">
+  <h2 id="saveHeading">저장/공유</h2>
+  <div class="actions"><button id="doImageSave" class="on">이미지 저장</button><button id="doImageShare">공유</button></div>
+  <button id="saveClose">닫기</button>
+</section>
+<div id="land">세로로 사용해 주세요</div>
+<script>
+/* ===== 설정 구간 ===== */
+const MOVE_THRESHOLD=8;      // 드래그로 판단하는 최소 이동(px)
+const LONG_PRESS_MS=500;     // 길게 누르기 시간
+const PIECE_RATIO=0.08, MIN_PIECE_PX=24, TOUCH_MIN_RADIUS=22; // 말 크기 (필드 폭 비율 / 최소 px / 터치 최소 반지름)
+const BALL_RATIO=0.033, BALL_MIN_R=9; // 공 반지름 = 필드 폭 × 비율 (말 크기와 독립)
+const ARROW_MIN_SPACING=6, ARROW_MIN_LENGTH=20, ERASE_TOLERANCE=14; // 화살표
+const PRESET_ANIM_MS=300, SAVE_DEBOUNCE_MS=300;
+const STORAGE_KEY='tacticboard_v1', SAVE_VERSION=1;
+const PITCH_M={w:68,h:105,goal:2};
+const COLORS={orange:'#F5A623',gk:'#FFD60A',opp:'#E5484D',oppGk:'#7B2CBF',g1:'#2E8B3A',g2:'#2A7F34'};
+const STRIPE_COUNT=8;
+/* 구역: 20구역 격자 (%) */
+const ZONE20={
+  X_PCT:[0,20.35,36.53,63.47,79.65,100],
+  Y_PCT:[0,15.714,32.857,50,67.143,84.286,100],
+  CELLS:[[1,0,1,5,6],[2,1,4,5,6],[3,4,5,5,6],[4,0,1,4,5],[5,0,1,3,4],[6,1,2,3,5],[7,2,3,3,5],[8,3,4,3,5],[9,4,5,4,5],[10,4,5,3,4],[11,0,1,2,3],[12,0,1,1,2],[13,1,2,1,3],[14,2,3,1,3],[15,3,4,1,3],[16,4,5,2,3],[17,4,5,1,2],[18,0,1,0,1],[19,1,4,0,1],[20,4,5,0,1]],
+  LINE_COLOR:'#1E5BFF',LINE_OPACITY:1,LINE_W:3
+};
+/* 포메이션 [x%, y%] (첫째는 골키퍼) */
+const FORMATIONS={
+ '11':[{name:'4-4-2',pts:[[50,92],[15,76],[38,76],[62,76],[85,76],[15,56],[38,56],[62,56],[85,56],[38,34],[62,34]]}],
+ '9':[{name:'3-3-2',pts:[[50,92],[22,76],[50,76],[78,76],[22,56],[50,56],[78,56],[38,34],[62,34]]}]
+};
+
+/* ===== 상태 ===== */
+const $=id=>document.getElementById(id);
+let zc=100;
+let storageUnavailable=false; // 브라우저 저장 공간 차단 여부
+function mk(mode,opp){return FORMATIONS[mode][0].pts.map((q,i)=>({id:(opp?'e':'o')+i,slot:i===0?'GK':'F',x:opp?100-q[0]:q[0],y:opp?100-q[1]:q[1],locked:false,z:i,playerId:null}))}
+function fresh(){return{mode:'11',our:{mod:false,pieces:mk('11',0)},opp:{on:false,mod:false,pieces:mk('11',1)},zones:false,arrows:[],ball:null}}
+let state=load()||fresh();
+const ui={arrow:false,erase:false,drag:null,path:null,fx:{},anim:[],L:null,memOnly:storageUnavailable,layers:null,pitchKey:'',zonesRendered:null,arrowDirty:true,activePointerId:null};
+// 새로 터치한 말을 최상단에 표시하도록 저장된 z값도 복구
+zc=Math.max(zc,...state.our.pieces.map(p=>Number(p.z)||0),...state.opp.pieces.map(p=>Number(p.z)||0));
+function load(){try{const r=localStorage.getItem(STORAGE_KEY);if(!r)return null;const s=JSON.parse(r);
+  if(!s||s.v!==SAVE_VERSION||!FORMATIONS[s.mode])return null;
+  const n=FORMATIONS[s.mode][0].pts.length;
+  const ok=a=>Array.isArray(a)&&a.length===n&&a.every(p=>p&&isFinite(p.x)&&isFinite(p.y));
+  if(!s.our||!ok(s.our.pieces)||!s.opp||!ok(s.opp.pieces))return null;
+  s.arrows=(Array.isArray(s.arrows)?s.arrows:[]).filter(a=>a&&Array.isArray(a.pts)).map(a=>({type:'pass',pts:a.pts}));
+  s.zones=!!s.zones;s.ball=(s.ball&&isFinite(s.ball.x)&&isFinite(s.ball.y))?{x:s.ball.x,y:s.ball.y,z:0}:null;return s;}catch(e){storageUnavailable=true;return null}}
+let saveT=null;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(Object.assign({v:SAVE_VERSION},state)))}
+  catch(e){ui.memOnly=true;showStorageWarning()}
+},SAVE_DEBOUNCE_MS)}
+function showStorageWarning(){$('storageWarn').style.display=ui.memOnly?'block':'none'}
+function commit(){renderAll();save()}
+
+/* ===== 대화상자 / 토스트 ===== */
+let dcb=null;
+function confirmDlg(msg,cb){$('dmsg').textContent=msg;dcb=cb;$('dlg').classList.add('show')}
+$('dno').onclick=()=>{$('dlg').classList.remove('show');dcb=null};
+$('dyes').onclick=()=>{$('dlg').classList.remove('show');const f=dcb;dcb=null;f&&f()};
+let tt=null;
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',1600)}
+const overlayOpen=()=>$('dlg').classList.contains('show')||$('saveSheet').classList.contains('show');
+
+/* ===== 화면 그리기 ===== */
+function renderAll(){renderTop();renderForm();renderPitch();renderBench();renderToolbar();showStorageWarning()}
+function renderTop(){$('m11').className=state.mode==='11'?'on':'';$('m9').className=state.mode==='9'?'on':'';$('bZone').className=state.zones?'on':''}
+function renderForm(){const f=FORMATIONS[state.mode][0].name;$('form').textContent=f+(state.our.mod?' (수정됨)':'')}
+function renderBench(){const b=$('bench');
+  if(ui.arrow){b.className='strip';b.innerHTML='필드 위를 드래그해서 점선 화살표를 그리세요'}
+  else if(ui.erase){b.className='strip';b.innerHTML='<button id="clr">화살표 전체 지우기</button>';$('clr').onclick=()=>confirmDlg('화살표를 모두 지울까요?',()=>{state.arrows=[];ui.arrowDirty=true;commit()})}
+  else{b.className='';b.innerHTML='<span class="bt">벤치가 비었어요. 명단에서 참석자를 체크하세요.</span>'+(state.ball?'':`<div class="ball"><svg width="30" height="30" viewBox="-15 -15 30 30">${ballInner(13)}</svg><span>공</span></div>`)}}
+function ballInner(r){let pts=[],sp='';for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5,c=Math.cos(a),s=Math.sin(a);pts.push((c*r*.38)+','+(s*r*.38));sp+=`<line x1="${c*r*.38}" y1="${s*r*.38}" x2="${c*r*.9}" y2="${s*r*.9}" stroke="#222" stroke-width="${Math.max(1,r*.08)}"/>`}
+  return`<circle r="${r}" fill="#fff" stroke="#222" stroke-width="${Math.max(1,r*.1)}"/>${sp}<polygon points="${pts.join(' ')}" fill="#222"/>`}
+function renderToolbar(){$('bArrow').className=ui.arrow?'on':'';$('bErase').className=ui.erase?'on':'';$('bOpp').className=state.opp.on?'on':''}
+
+function geom(){const pw=$('pw'),aw=pw.clientWidth,ah=pw.clientHeight,M=PITCH_M;
+  const gd=M.goal+0.6,mx=0.6,s=Math.min(ah/(M.h+2*gd),aw/(M.w+2*mx));
+  const W=M.w*s,H=M.h*s;return{s,W,H,ox:mx*s,oy:gd*s,w:W+2*mx*s,h:H+2*gd*s,d:Math.max(MIN_PIECE_PX,PIECE_RATIO*W),br:Math.max(BALL_MIN_R,BALL_RATIO*W)}}
+
+function staticPitch(L){const{s,W,H,ox,oy}=L,X=m=>ox+m*s,Y=m=>oy+m*s,px=p=>ox+p/100*W,py=p=>oy+p/100*H;
+  let o=`<rect width="${L.w}" height="${L.h}" fill="${COLORS.g2}"/>`;
+  for(let i=0;i<STRIPE_COUNT;i++)o+=`<rect x="${ox+i*W/STRIPE_COUNT}" y="0" width="${W/STRIPE_COUNT}" height="${L.h}" fill="${i%2?COLORS.g2:COLORS.g1}"/>`;
+  /* 흰 선 */
+  let l=`<g fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round">`;
+  l+=`<rect x="${ox}" y="${oy}" width="${W}" height="${H}"/><line x1="${ox}" y1="${Y(52.5)}" x2="${ox+W}" y2="${Y(52.5)}"/><circle cx="${X(34)}" cy="${Y(52.5)}" r="${9.15*s}"/>`;
+  [0,1].forEach(b=>{const gy=b?Y(105):oy,dir=b?-1:1;
+    l+=`<rect x="${X(13.84)}" y="${b?Y(105-16.5):oy}" width="${40.32*s}" height="${16.5*s}"/>`;
+    l+=`<rect x="${X(24.84)}" y="${b?Y(105-5.5):oy}" width="${18.32*s}" height="${5.5*s}"/>`;
+    l+=`<rect x="${X(30.34)}" y="${b?gy:gy-2*s}" width="${7.32*s}" height="${2*s}" fill="rgba(255,255,255,0.15)"/>`;
+    const dx=Math.sqrt(9.15*9.15-5.5*5.5),cy=Y(b?105-16.5:16.5);
+    l+=`<path d="M${X(34-dx)} ${cy} A${9.15*s} ${9.15*s} 0 0 ${b?1:0} ${X(34+dx)} ${cy}"/>`});
+  const r=s;l+=`<path d="M${ox+r} ${oy} A${r} ${r} 0 0 1 ${ox} ${oy+r}"/><path d="M${ox+W-r} ${oy} A${r} ${r} 0 0 0 ${ox+W} ${oy+r}"/><path d="M${ox} ${oy+H-r} A${r} ${r} 0 0 1 ${ox+r} ${oy+H}"/><path d="M${ox+W} ${oy+H-r} A${r} ${r} 0 0 0 ${ox+W-r} ${oy+H}"/></g>`;
+  l+=`<g fill="#fff"><circle cx="${X(34)}" cy="${Y(52.5)}" r="3"/><circle cx="${X(34)}" cy="${Y(11)}" r="3"/><circle cx="${X(34)}" cy="${Y(94)}" r="3"/></g>`;
+  o+=l;
+  return o}
+
+function arrowSvg(pts){ /* pts: px 좌표 배열 */
+  if(pts.length<2)return'';
+  const d='M'+pts.map(p=>p[0]+' '+p[1]).join(' L');
+  const e=pts[pts.length-1];let b=pts[0];
+  for(let i=pts.length-2;i>=0;i--){b=pts[i];if(Math.hypot(e[0]-b[0],e[1]-b[1])>=8)break}
+  const a=Math.atan2(e[1]-b[1],e[0]-b[0]),c=Math.cos(a),sn=Math.sin(a);
+  const hd=`${e[0]},${e[1]} ${e[0]-12*c+6.5*sn},${e[1]-12*sn-6.5*c} ${e[0]-12*c-6.5*sn},${e[1]-12*sn+6.5*c}`;
+  return`<path d="${d}" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="5.5" stroke-dasharray="6 6" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round" stroke-linejoin="round"/><polygon points="${hd}" fill="#fff"/>`}
+
+function fxOf(id){const f=ui.fx[id];if(!f)return{sc:1,dx:0};const t=(performance.now()-f.t0)/f.ms;
+  if(t>=1){delete ui.fx[id];return{sc:1,dx:0}}
+  return f.k==='pop'?{sc:1+0.25*Math.sin(Math.PI*t),dx:0}:{sc:1,dx:4*Math.sin(6*Math.PI*t)*(1-t)}}
+
+function pieceSvg(p,opp,L){const cx=L.ox+p.x/100*L.W,cy=L.oy+p.y/100*L.H,r=L.d/2,f=fxOf(p.id),dr=ui.drag&&ui.drag.p===p&&ui.drag.moved;
+  const fill=opp?(p.slot==='GK'?COLORS.oppGk:COLORS.opp):(p.slot==='GK'?COLORS.gk:'#fff'),stroke=opp?'#fff':COLORS.orange;
+  const sc=f.sc*(dr?1.15:1),bR=Math.max(7,r*0.36),off=r*0.78;
+  let g=`<g transform="translate(${cx+f.dx} ${cy})"${dr?' filter="url(#sh)"':''}><g transform="scale(${sc})"><circle r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>`;
+  if(!opp)g+=`<text text-anchor="middle" dominant-baseline="central" font-size="${L.d*0.5}" font-weight="800" fill="#000">+</text>`;
+  if(p.locked)g+=`<g transform="translate(${-off} ${-off})"><circle r="${bR}" fill="#222" stroke="#fff" stroke-width="1"/><rect x="${-bR*0.45}" y="${-bR*0.1}" width="${bR*0.9}" height="${bR*0.6}" fill="#fff"/><path d="M${-bR*0.28} ${-bR*0.1} v${-bR*0.25} a${bR*0.28} ${bR*0.28} 0 0 1 ${bR*0.56} 0 v${bR*0.25}" fill="none" stroke="#fff" stroke-width="1.4"/></g>`;
+  return g+'</g></g>'}
+
+/* SVG는 크기가 달라질 때만 기본 구조를 만들고, 일반 드래그 중에는 동적인 레이어만 갱신한다. */
+function zoneMarkup(L){
+  let o='';
+  ZONE20.CELLS.forEach(c=>{
+    const x1=L.ox+ZONE20.X_PCT[c[1]]/100*L.W,x2=L.ox+ZONE20.X_PCT[c[2]]/100*L.W;
+    const y1=L.oy+ZONE20.Y_PCT[c[3]]/100*L.H,y2=L.oy+ZONE20.Y_PCT[c[4]]/100*L.H;
+    o+=`<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="none" stroke="${ZONE20.LINE_COLOR}" stroke-opacity="${ZONE20.LINE_OPACITY}" stroke-width="${ZONE20.LINE_W}"/>`;
+  });
+  return o;
+}
+function renderPitch(){
+  const svg=$('svg'),L=ui.L||(ui.L=geom());
+  if(!L||L.w<=0||L.h<=0)return;
+  const key=L.w.toFixed(2)+'|'+L.h.toFixed(2);
+  if(ui.pitchKey!==key||!ui.layers){
+    // 뷰포트 크기가 바뀌었을 때에만 잔디, 페널티 박스 등을 다시 생성
+    svg.setAttribute('width',L.w);svg.setAttribute('height',L.h);
+    svg.setAttribute('viewBox',`0 0 ${L.w} ${L.h}`);
+    svg.innerHTML=`<defs><filter id="sh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".55"/></filter></defs>`
+      +`<g id="fieldBase">${staticPitch(L)}</g><g id="arrowLayer"></g><g id="pieceLayer"></g><g id="ballLayer"></g><g id="zoneLayer" pointer-events="none"></g>`;
+    ui.layers={arrows:$('arrowLayer'),pieces:$('pieceLayer'),ball:$('ballLayer'),zones:$('zoneLayer')};
+    ui.pitchKey=key;ui.arrowDirty=true;ui.zonesRendered=null;
+  }
+  if(ui.arrowDirty){
+    let o='';
+    state.arrows.forEach(a=>{o+=arrowSvg(a.pts.map(q=>[L.ox+q[0]/100*L.W,L.oy+q[1]/100*L.H]))});
+    if(ui.path)o+=arrowSvg(ui.path);
+    ui.layers.arrows.innerHTML=o;ui.arrowDirty=false;
+  }
+  let pieces='';
+  const list=[];state.our.pieces.forEach(p=>list.push([p,0]));
+  if(state.opp.on)state.opp.pieces.forEach(p=>list.push([p,1]));
+  list.sort((a,b)=>a[0].z-b[0].z).forEach(([p,opp])=>{pieces+=pieceSvg(p,opp,L)});
+  ui.layers.pieces.innerHTML=pieces;
+  if(state.ball){
+    const b=state.ball,bx=L.ox+b.x/100*L.W,by=L.oy+b.y/100*L.H,br=L.br,bd=ui.drag&&ui.drag.ball&&ui.drag.moved;
+    ui.layers.ball.innerHTML=`<g transform="translate(${bx} ${by}) scale(${bd?1.2:1})"${bd?' filter="url(#sh)"':''}>${ballInner(br)}</g>`;
+  }else ui.layers.ball.innerHTML='';
+  if(ui.zonesRendered!==state.zones){
+    ui.layers.zones.innerHTML=state.zones?zoneMarkup(L):'';
+    ui.zonesRendered=state.zones;
+  }
+}
+// PointerEvent가 초당 수백 번 들어와도 렌더링은 화면 주사율에 맞춰 한 번만 수행
+let pendingPitchFrame=0;
+function schedulePitchRender(){
+  if(pendingPitchFrame)return;
+  pendingPitchFrame=requestAnimationFrame(()=>{pendingPitchFrame=0;renderPitch()});
+}
+function invalidatePitchLayout(){ui.L=null;ui.pitchKey='';schedulePitchRender()}
+
+/* ===== 애니메이션 ===== */
+let tick=false;
+function loop(){const now=performance.now();
+  ui.anim=ui.anim.filter(a=>{const t=Math.max(0,Math.min(1,(now-a.t0)/a.ms)),e=1-Math.pow(1-t,3);a.p.x=a.fx+(a.tx-a.fx)*e;a.p.y=a.fy+(a.ty-a.fy)*e;return t<1});
+  renderPitch();
+  if(ui.anim.length||Object.keys(ui.fx).length)requestAnimationFrame(loop);else{tick=false;save()}}
+function kick(){if(!tick){tick=true;requestAnimationFrame(loop)}}
+function addFx(id,k,ms){ui.fx[id]={k,ms,t0:performance.now()};kick()}
+
+/* ===== 터치 처리 ===== */
+const svgEl=$('svg');
+function pt(e){const r=svgEl.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function hit(x,y){const L=ui.L,r=Math.max(L.d/2,TOUCH_MIN_RADIUS),all=[];
+  state.our.pieces.forEach(p=>all.push([p,0]));if(state.opp.on)state.opp.pieces.forEach(p=>all.push([p,1]));
+  all.sort((a,b)=>b[0].z-a[0].z);
+  for(const [p,opp] of all){if(Math.hypot(x-(L.ox+p.x/100*L.W),y-(L.oy+p.y/100*L.H))<=r)return{p,opp}}return null}
+function distSeg(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((px-a[0])*dx+(py-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(px-a[0]-t*dx,py-a[1]-t*dy)}
+const clampP=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+svgEl.addEventListener('pointerdown',e=>{
+  if(overlayOpen())return;
+  if(ui.activePointerId!==null)return;
+  ui.activePointerId=e.pointerId;
+  const[x,y]=pt(e),L=ui.L;svgEl.setPointerCapture(e.pointerId);
+  if(ui.arrow){ui.path=[[clampP(x,L.ox,L.ox+L.W),clampP(y,L.oy,L.oy+L.H)]];ui.arrowDirty=true;schedulePitchRender();return}
+  if(ui.erase){let best=null,bd=ERASE_TOLERANCE;
+    state.arrows.forEach((a,i)=>{const q=a.pts.map(v=>[L.ox+v[0]/100*L.W,L.oy+v[1]/100*L.H]);for(let k=0;k<q.length-1;k++){const dd=distSeg(x,y,q[k],q[k+1]);if(dd<=bd){bd=dd;best=i}}});
+    if(best!==null){state.arrows.splice(best,1);ui.arrowDirty=true;commit()}return}
+  if(state.ball){const b=state.ball;
+    if(Math.hypot(x-(L.ox+b.x/100*L.W),y-(L.oy+b.y/100*L.H))<=Math.max(L.br,TOUCH_MIN_RADIUS)){ui.drag={p:b,ball:true,sx:x,sy:y,ox:b.x,oy:b.y,moved:false,fired:false};return}}
+  const h=hit(x,y);if(!h)return;
+  h.p.z=++zc;
+  const dg=ui.drag={p:h.p,opp:h.opp,sx:x,sy:y,ox:h.p.x,oy:h.p.y,moved:false,fired:false,shook:false};
+  dg.timer=setTimeout(()=>{if(ui.drag!==dg||dg.moved)return;dg.fired=true;h.p.locked=!h.p.locked;
+    if(h.p.locked&&navigator.vibrate)try{navigator.vibrate(30)}catch(_){}
+    addFx(h.p.id,'pop',150);commit()},LONG_PRESS_MS);
+  schedulePitchRender()});
+
+svgEl.addEventListener('pointermove',e=>{
+  if(e.pointerId!==ui.activePointerId)return;
+  const[x,y]=pt(e),L=ui.L;
+  if(ui.path){const last=ui.path[ui.path.length-1],cx=clampP(x,L.ox,L.ox+L.W),cy=clampP(y,L.oy,L.oy+L.H);
+    if(Math.hypot(cx-last[0],cy-last[1])>=ARROW_MIN_SPACING){ui.path.push([cx,cy]);ui.arrowDirty=true;schedulePitchRender()}return}
+  const dg=ui.drag;if(!dg||dg.fired)return;
+  if(!dg.moved){if(Math.hypot(x-dg.sx,y-dg.sy)<MOVE_THRESHOLD)return;clearTimeout(dg.timer);
+    if(dg.p.locked){if(!dg.shook){dg.shook=true;addFx(dg.p.id,'shake',350)}return}
+    dg.moved=true}
+  if(dg.p.locked)return;
+  dg.p.x=clampP(dg.ox+(x-dg.sx)/L.W*100,0,100);dg.p.y=clampP(dg.oy+(y-dg.sy)/L.H*100,0,100);schedulePitchRender()});
+
+function endPtr(e,cancel){
+  if(e.pointerId!==ui.activePointerId)return;
+  ui.activePointerId=null;
+  if(ui.path){const L=ui.L,p=ui.path;
+    if(!cancel){const[x,y]=pt(e),last=p[p.length-1],cx=clampP(x,L.ox,L.ox+L.W),cy=clampP(y,L.oy,L.oy+L.H);if(Math.hypot(cx-last[0],cy-last[1])>0)p.push([cx,cy])}
+    let len=0;for(let i=1;i<p.length;i++)len+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
+    ui.path=null;ui.arrowDirty=true;
+    if(len>=ARROW_MIN_LENGTH&&!cancel)state.arrows.push({type:'pass',pts:p.map(q=>[(q[0]-L.ox)/L.W*100,(q[1]-L.oy)/L.H*100])});
+    commit();return}
+  const dg=ui.drag;if(!dg)return;clearTimeout(dg.timer);ui.drag=null;
+  if(dg.ball){const br=$('bench').getBoundingClientRect();if(dg.moved&&e.clientY>=br.top&&e.clientY<=br.bottom)state.ball=null;commit();return}
+  if(dg.moved){(dg.opp?state.opp:state.our).mod=true;commit()}else renderPitch()}
+svgEl.addEventListener('pointerup',e=>endPtr(e,false));
+svgEl.addEventListener('pointercancel',e=>endPtr(e,true));
+
+/* ===== 버튼 ===== */
+function setMode(m){if(state.mode===m)return;
+  const dirty=[state.our,state.opp].some(t=>t.mod||t.pieces.some(p=>p.locked||p.playerId));
+  const go=()=>{state.mode=m;state.our={mod:false,pieces:mk(m,0)};state.opp={on:state.opp.on,mod:false,pieces:mk(m,1)};commit()};
+  dirty?confirmDlg('경기 방식을 바꾸면 말 배치가 바뀌고 잠금이 풀립니다. 계속할까요?',go):go()}
+$('m11').onclick=()=>setMode('11');$('m9').onclick=()=>setMode('9');
+$('bZone').onclick=()=>{state.zones=!state.zones;commit()};
+$('bArrow').onclick=()=>{ui.arrow=!ui.arrow;ui.erase=false;ui.path=null;ui.arrowDirty=true;renderAll()};
+$('bErase').onclick=()=>{ui.erase=!ui.erase;ui.arrow=false;ui.path=null;ui.arrowDirty=true;renderAll()};
+$('bOpp').onclick=()=>{state.opp.on=!state.opp.on;commit()};
+$('bRoster').onclick=()=>toast('명단은 다음 단계에서 추가돼요');
+/* ===== PNG 내보내기 / 모바일 공유 ===== */
+// 화면 SVG를 그대로 캡처하지 않고 별도 SVG를 생성해 잠금, 드래그 효과, 메뉴가 이미지에 포함되지 않게 한다.
+const EXPORT_SCALE=2,EXPORT_METER_SCALE=10,EXPORT_TITLE_H=90;
+function exportPieceSvg(p,opp,L){
+  const cx=L.ox+p.x/100*L.W,cy=L.oy+p.y/100*L.H,r=L.d/2;
+  const fill=opp?(p.slot==='GK'?COLORS.oppGk:COLORS.opp):(p.slot==='GK'?COLORS.gk:'#fff');
+  const stroke=opp?'#fff':COLORS.orange;
+  return `<g transform="translate(${cx} ${cy})"><circle r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>`+
+         (opp?'':`<text text-anchor="middle" dominant-baseline="central" font-size="${L.d*0.5}" font-weight="800" fill="#000">+</text>`)+`</g>`;
+}
+function buildExportSvg(){
+  // 실제 68×105m 경기장을 10px/m 비율로 만들고 골대 바깥 여백을 보장한다.
+  const s=EXPORT_METER_SCALE,ox=.6*s,oy=(PITCH_M.goal+.6)*s,W=68*s,H=105*s;
+  const L={s,ox,oy,W,H,w:W+1.2*s,h:H+2*(PITCH_M.goal+.6)*s,d:Math.max(MIN_PIECE_PX,PIECE_RATIO*W),br:Math.max(BALL_MIN_R,BALL_RATIO*W)};
+  let o=staticPitch(L);
+  state.arrows.forEach(a=>{o+=arrowSvg(a.pts.map(q=>[L.ox+q[0]/100*L.W,L.oy+q[1]/100*L.H]))});
+  const pieces=[];state.our.pieces.forEach(p=>pieces.push([p,false]));
+  if(state.opp.on)state.opp.pieces.forEach(p=>pieces.push([p,true]));
+  pieces.sort((a,b)=>a[0].z-b[0].z).forEach(([p,opp])=>{o+=exportPieceSvg(p,opp,L)});
+  if(state.ball){const b=state.ball;o+=`<g transform="translate(${L.ox+b.x/100*L.W} ${L.oy+b.y/100*L.H})">${ballInner(L.br)}</g>`}
+  // 사용자가 올린 파일의 파란 20구역 선을 원본과 동일하게 표시
+  if(state.zones)o+=`<g pointer-events="none">${zoneMarkup(L)}</g>`;
+  const title=`${state.mode}:${state.mode} · ${FORMATIONS[state.mode][0].name}`;
+  return {width:L.w,height:L.h+EXPORT_TITLE_H,svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${L.w}" height="${L.h+EXPORT_TITLE_H}" viewBox="0 0 ${L.w} ${L.h+EXPORT_TITLE_H}" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif">`+
+    `<rect width="100%" height="100%" fill="#10231a"/>`+
+    `<rect width="${L.w}" height="${EXPORT_TITLE_H}" fill="#10231a"/>`+
+    `<text x="${L.w/2}" y="${EXPORT_TITLE_H/2}" dominant-baseline="middle" text-anchor="middle" font-size="38" font-weight="800" fill="#fff">${title}</text>`+
+    `<g transform="translate(0 ${EXPORT_TITLE_H})">${o}</g></svg>`};
+}
+async function generatePng(){
+  const data=buildExportSvg();
+  // 내보내는 픽셀 수는 2배로 유지해 확대해도 글자와 선이 선명하다.
+  const source='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data.svg);
+  const img=new Image();
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('SVG 이미지 변환 실패'));img.src=source});
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(data.width*EXPORT_SCALE);canvas.height=Math.round(data.height*EXPORT_SCALE);
+  const ctx=canvas.getContext('2d');if(!ctx)throw new Error('캔버스 사용 불가');
+  ctx.scale(EXPORT_SCALE,EXPORT_SCALE);ctx.drawImage(img,0,0,data.width,data.height);
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG 생성 실패')),'image/png'));
+  return blob;
+}
+function downloadPng(blob){
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+  a.download='tactic-board.png';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+function closeSaveSheet(){$('saveShade').classList.remove('show');$('saveSheet').classList.remove('show')}
+function openSaveSheet(){$('saveShade').classList.add('show');$('saveSheet').classList.add('show')}
+$('bSave').onclick=openSaveSheet;
+$('saveShade').onclick=closeSaveSheet;$('saveClose').onclick=closeSaveSheet;
+const SAVE_ERROR='카카오톡 안에서 열면 저장이나 공유가 안 될 수 있어요. 크롬이나 사파리에서 열어주세요.';
+async function handleImageAction(share){
+  const btn=$((share?'doImageShare':'doImageSave'));btn.disabled=true;
+  try{
+    const blob=await generatePng();
+    if(share&&typeof navigator.share==='function'&&typeof navigator.canShare==='function'){
+      const file=new File([blob],'tactic-board.png',{type:'image/png'});
+      if(navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'전술 바둑판'})}
+        catch(e){if(e&&e.name==='AbortError')return;throw e}
+      }else downloadPng(blob);
+    }else downloadPng(blob);
+    closeSaveSheet();
+  }catch(e){console.error('이미지 처리 오류:',e);alert(SAVE_ERROR)}
+  finally{btn.disabled=false}
+}
+$('doImageSave').onclick=()=>handleImageAction(false);
+$('doImageShare').onclick=()=>handleImageAction(true);
+$('bReset').onclick=()=>confirmDlg('말 위치와 화살표를 처음으로 되돌리고\n선수를 벤치로 보낼까요?',()=>{
+  const pts=FORMATIONS[state.mode][0].pts,now=performance.now();
+  [[state.our.pieces,0],[state.opp.pieces,1]].forEach(([ps,opp])=>ps.forEach((p,i)=>{
+    ui.anim.push({p,fx:p.x,fy:p.y,tx:opp?100-pts[i][0]:pts[i][0],ty:opp?100-pts[i][1]:pts[i][1],t0:now,ms:PRESET_ANIM_MS});p.playerId=null}));
+  state.our.mod=false;state.opp.mod=false;state.arrows=[];ui.arrowDirty=true;state.ball=null;kick();commit()});
+
+/* ===== 벤치의 공을 필드로 드래그 (세로 방향 제스처만) ===== */
+$('bench').addEventListener('pointerdown',e=>{if(overlayOpen()||!e.target.closest('.ball'))return;ui.bd={x:e.clientX,y:e.clientY,on:false,g:null}});
+window.addEventListener('pointermove',e=>{const s=ui.bd;if(!s)return;const dx=e.clientX-s.x,dy=e.clientY-s.y;
+  if(!s.on){if(Math.abs(dy)>=MOVE_THRESHOLD&&Math.abs(dy)>Math.abs(dx)){s.on=true;const g=document.createElement('div');
+    g.style.cssText='position:fixed;z-index:90;width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid #F5A623;color:#000;font-weight:800;display:flex;align-items:center;justify-content:center;pointer-events:none;transform:translate(-50%,-150%)';
+    g.textContent='공';document.body.appendChild(g);s.g=g}else return}
+  s.g.style.left=e.clientX+'px';s.g.style.top=e.clientY+'px'});
+function endBd(e,ok){const s=ui.bd;if(!s)return;ui.bd=null;if(s.g)s.g.remove();if(!ok||!s.on)return;
+  const r=svgEl.getBoundingClientRect(),L=ui.L,x=e.clientX-r.left-L.ox,y=e.clientY-r.top-L.oy;
+  if(x<0||y<0||x>L.W||y>L.H)return;state.ball={x:x/L.W*100,y:y/L.H*100,z:++zc};commit()}
+window.addEventListener('pointerup',e=>endBd(e,true));window.addEventListener('pointercancel',e=>endBd(e,false));
+
+/* ===== 브라우저 기본 동작 차단 ===== */
+['gesturestart','gesturechange','gestureend'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()));
+document.addEventListener('dblclick',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('resize',invalidatePitchLayout);window.addEventListener('orientationchange',invalidatePitchLayout);
+if(window.ResizeObserver)new ResizeObserver(invalidatePitchLayout).observe($('pw'));
+renderAll();
+</script>
+</body>
+</html>
