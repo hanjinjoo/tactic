@@ -8,7 +8,7 @@
 :root{color-scheme:dark;--bg:#0f1a12;--bar:#16231a;--row:#101c14;--btn:#2b3a2f;--on:#F5A623;--tx:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--tx);touch-action:manipulation;font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
-#app{position:fixed;left:0;top:0;width:100%;height:100vh;height:100dvh;display:grid;grid-template-rows:calc(48px + env(safe-area-inset-top,0px)) 36px minmax(0,1fr) 64px calc(56px + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0);padding-right:env(safe-area-inset-right,0)}
+#app{position:fixed;left:50%;transform:translateX(-50%);top:0;width:100%;max-width:480px;height:100vh;height:100dvh;display:grid;grid-template-rows:calc(48px + env(safe-area-inset-top,0px)) 36px minmax(0,1fr) 64px calc(56px + env(safe-area-inset-bottom,0px));padding-left:env(safe-area-inset-left,0);padding-right:env(safe-area-inset-right,0)}
 #top{background:var(--bar);display:flex;align-items:center;gap:6px;padding:env(safe-area-inset-top,0) 8px 0}
 #top .mid{flex:1;display:flex;justify-content:center;gap:6px}
 button{font:inherit;font-size:15px;color:var(--tx);background:var(--btn);border:0;border-radius:10px;min-height:44px;min-width:44px;padding:0 12px}
@@ -29,15 +29,23 @@ button.on{background:var(--on);color:#000;font-weight:800}
 #dlg p{margin:0 0 16px;line-height:1.5;white-space:pre-line}
 #dlg .bt{display:flex;gap:8px;justify-content:flex-end}
 #toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#fff;color:#000;font-weight:700;padding:10px 16px;border-radius:20px;z-index:80;display:none;max-width:90%}
-#saveShade{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:59;display:none}
-#saveShade.show{display:block}
-#saveSheet{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;background:#1d2c21;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 25px rgba(0,0,0,.25)}
-#saveSheet.show{display:block}
-#saveSheet h2{font-size:18px;margin:0 0 18px}
-#saveSheet .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#saveSheet .actions button{min-height:48px}
-#saveClose{display:block;margin:12px 0 0 auto}
-#storageWarn{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:80;display:none;text-align:center;background:#9c2424;color:#fff;font-size:12px;font-weight:bold;padding:4px}
+#bk{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;display:none}#bk.show{display:block}
+#drawer{position:fixed;left:0;top:0;bottom:0;width:45vw;min-width:190px;max-width:320px;background:#16231a;z-index:41;transform:translateX(-100%);transition:transform .2s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#drawer.show{transform:none}
+#sheet{position:fixed;left:50%;bottom:0;width:100%;max-width:480px;height:70%;background:#16231a;border-radius:16px 16px 0 0;z-index:51;transform:translate(-50%,105%);transition:transform .2s;display:flex;flex-direction:column}
+#sheet.show{transform:translate(-50%,0)}
+.hd{padding:8px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hd input{flex:1 1 100%;min-width:0;font-size:16px;height:40px;border-radius:8px;border:0;padding:0 10px;background:#0f1a12;color:#fff;user-select:text;-webkit-user-select:text}
+.ls{flex:1;overflow-y:auto;padding:0 8px}
+.row{display:flex;align-items:center;min-height:44px;gap:4px;font-size:15px}
+.row label{width:40px;height:44px;display:flex;align-items:center;justify-content:center;flex:none}
+.row input{width:24px;height:24px;accent-color:#F5A623}
+.row .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:44px}
+.row .s{font-size:12px;color:#cfe0d3;flex:none;padding-right:4px}.row.dim .n,.row.dim .s{opacity:.4}
+.sec{font-size:12px;color:#9fb5a4;padding:8px 4px 2px;border-top:1px solid #2b3a2f;margin-top:4px}
+.bi{flex:none;width:48px;height:60px;display:flex;flex-direction:column;align-items:center;font-size:11px;font-weight:700;line-height:13px;margin-right:4px;touch-action:pan-x;padding-top:3px;color:#fff}
+.bi i{font-style:normal;width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid #F5A623;color:#000;display:flex;align-items:center;justify-content:center;font-size:12px}
+.bi span{max-width:48px;overflow:hidden;white-space:nowrap}
 #land{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;align-items:center;justify-content:center;font-size:22px;font-weight:700}
 @media (orientation:landscape){#land{display:flex}}
 </style>
@@ -56,15 +64,11 @@ button.on{background:var(--on);color:#000;font-weight:800}
     <button id="bArrow">화살표</button><button id="bErase">지우개</button><button id="bOpp">상대팀</button><button id="bReset">초기화</button><button id="bSave">저장/공유</button>
   </div>
 </div>
+<div id="bk"></div>
+<div id="drawer"><div class="hd"><b id="dcnt" style="flex:1;font-size:13px"></b><button id="dcl">닫기</button><input id="dq" placeholder="이름 또는 번호 검색"></div><div class="ls" id="dls"></div><div class="hd"><button id="datt">오늘 참석 초기화</button></div></div>
+<div id="sheet"><div class="hd"><b id="shn" style="flex:1"></b><button id="shb">벤치로 보내기</button><button id="shc">닫기</button><input id="sq" placeholder="이름 또는 번호 검색"></div><div class="ls" id="sls"></div></div>
 <div id="dlg"><div class="box"><p id="dmsg"></p><div class="bt"><button id="dno">취소</button><button id="dyes" class="on">확인</button></div></div></div>
 <div id="toast"></div>
-<div id="storageWarn">저장 공간을 쓸 수 없어요. 이 화면에서만 유지돼요.</div>
-<div id="saveShade" aria-hidden="true"></div>
-<section id="saveSheet" role="dialog" aria-modal="true" aria-labelledby="saveHeading">
-  <h2 id="saveHeading">저장/공유</h2>
-  <div class="actions"><button id="doImageSave" class="on">이미지 저장</button><button id="doImageShare">공유</button></div>
-  <button id="saveClose">닫기</button>
-</section>
 <div id="land">세로로 사용해 주세요</div>
 <script>
 /* ===== 설정 구간 ===== */
@@ -91,29 +95,27 @@ const FORMATIONS={
  '9':[{name:'3-3-2',pts:[[50,92],[22,76],[50,76],[78,76],[22,56],[50,56],[78,56],[38,34],[62,34]]}]
 };
 
+/* 기본 명단 49명 (이름 번호) */
+const ROSTER_DEFAULT='주한진 49/유정환 1/이선정 7/최주원 22/송인호 24/원천호 25/황상호 28/김진배 66/방태웅 88/이성우 99/지무현 26/김병수 17/윤준교 30/최상경 35/이상훈 71/박병인 8/장기선 9/조경범 32/금형필 6/김재식 11/오지석 12/김진성 14/김승민 16/안치국 19/강선우 21/이근중 23/양성민 27/남상균 52/이원기 77/이해룡 91/박준호 15/유선일 2/이상현 10/이승환 13/송준한 37/권용근 59/정선호 84/이명기 87/채수웅 3/박승일 5/이상현 20/김윤진 29/윤희재 33/성태호 94/홍두윤 4/황순현 18/설재환 47/김민성 67/한승민 43'.split('/').map((s,i)=>{const a=s.split(' ');return{id:'p'+(i+1),name:a[0],num:a[1]}});
 /* ===== 상태 ===== */
 const $=id=>document.getElementById(id);
 let zc=100;
-let storageUnavailable=false; // 브라우저 저장 공간 차단 여부
 function mk(mode,opp){return FORMATIONS[mode][0].pts.map((q,i)=>({id:(opp?'e':'o')+i,slot:i===0?'GK':'F',x:opp?100-q[0]:q[0],y:opp?100-q[1]:q[1],locked:false,z:i,playerId:null}))}
-function fresh(){return{mode:'11',our:{mod:false,pieces:mk('11',0)},opp:{on:false,mod:false,pieces:mk('11',1)},zones:false,arrows:[],ball:null}}
+function fresh(){return{mode:'11',our:{mod:false,pieces:mk('11',0)},opp:{on:false,mod:false,pieces:mk('11',1)},zones:false,arrows:[],ball:null,roster:ROSTER_DEFAULT.map(r=>Object.assign({},r)),att:{}}}
 let state=load()||fresh();
-const ui={arrow:false,erase:false,drag:null,path:null,fx:{},anim:[],L:null,memOnly:storageUnavailable,layers:null,pitchKey:'',zonesRendered:null,arrowDirty:true,activePointerId:null};
-// 새로 터치한 말을 최상단에 표시하도록 저장된 z값도 복구
-zc=Math.max(zc,...state.our.pieces.map(p=>Number(p.z)||0),...state.opp.pieces.map(p=>Number(p.z)||0));
+const ui={arrow:false,erase:false,drag:null,path:null,fx:{},anim:[],L:null,memOnly:false};
 function load(){try{const r=localStorage.getItem(STORAGE_KEY);if(!r)return null;const s=JSON.parse(r);
   if(!s||s.v!==SAVE_VERSION||!FORMATIONS[s.mode])return null;
   const n=FORMATIONS[s.mode][0].pts.length;
   const ok=a=>Array.isArray(a)&&a.length===n&&a.every(p=>p&&isFinite(p.x)&&isFinite(p.y));
   if(!s.our||!ok(s.our.pieces)||!s.opp||!ok(s.opp.pieces))return null;
   s.arrows=(Array.isArray(s.arrows)?s.arrows:[]).filter(a=>a&&Array.isArray(a.pts)).map(a=>({type:'pass',pts:a.pts}));
-  s.zones=!!s.zones;s.ball=(s.ball&&isFinite(s.ball.x)&&isFinite(s.ball.y))?{x:s.ball.x,y:s.ball.y,z:0}:null;return s;}catch(e){storageUnavailable=true;return null}}
+  s.zones=!!s.zones;s.ball=(s.ball&&isFinite(s.ball.x)&&isFinite(s.ball.y))?{x:s.ball.x,y:s.ball.y,z:0}:null;
+  s.roster=(Array.isArray(s.roster)&&s.roster.length)?s.roster.filter(r=>r&&r.id&&r.name!=null&&r.num!=null):ROSTER_DEFAULT.map(r=>Object.assign({},r));
+  s.att=(s.att&&typeof s.att==='object')?s.att:{};
+  s.our.pieces.forEach(p=>{if(p.playerId&&!s.roster.some(r=>r.id===p.playerId))p.playerId=null});return s;}catch(e){ui.memOnly=true;return null}}
 let saveT=null;
-function save(){clearTimeout(saveT);saveT=setTimeout(()=>{
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(Object.assign({v:SAVE_VERSION},state)))}
-  catch(e){ui.memOnly=true;showStorageWarning()}
-},SAVE_DEBOUNCE_MS)}
-function showStorageWarning(){$('storageWarn').style.display=ui.memOnly?'block':'none'}
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(Object.assign({v:SAVE_VERSION},state)))}catch(e){ui.memOnly=true}},SAVE_DEBOUNCE_MS)}
 function commit(){renderAll();save()}
 
 /* ===== 대화상자 / 토스트 ===== */
@@ -123,16 +125,16 @@ $('dno').onclick=()=>{$('dlg').classList.remove('show');dcb=null};
 $('dyes').onclick=()=>{$('dlg').classList.remove('show');const f=dcb;dcb=null;f&&f()};
 let tt=null;
 function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',1600)}
-const overlayOpen=()=>$('dlg').classList.contains('show')||$('saveSheet').classList.contains('show');
+const overlayOpen=()=>$('dlg').classList.contains('show')||$('drawer').classList.contains('show')||$('sheet').classList.contains('show');
 
 /* ===== 화면 그리기 ===== */
-function renderAll(){renderTop();renderForm();renderPitch();renderBench();renderToolbar();showStorageWarning()}
+function renderAll(){renderTop();renderForm();renderPitch();renderBench();renderToolbar();renderLists()}
 function renderTop(){$('m11').className=state.mode==='11'?'on':'';$('m9').className=state.mode==='9'?'on':'';$('bZone').className=state.zones?'on':''}
 function renderForm(){const f=FORMATIONS[state.mode][0].name;$('form').textContent=f+(state.our.mod?' (수정됨)':'')}
 function renderBench(){const b=$('bench');
   if(ui.arrow){b.className='strip';b.innerHTML='필드 위를 드래그해서 점선 화살표를 그리세요'}
-  else if(ui.erase){b.className='strip';b.innerHTML='<button id="clr">화살표 전체 지우기</button>';$('clr').onclick=()=>confirmDlg('화살표를 모두 지울까요?',()=>{state.arrows=[];ui.arrowDirty=true;commit()})}
-  else{b.className='';b.innerHTML='<span class="bt">벤치가 비었어요. 명단에서 참석자를 체크하세요.</span>'+(state.ball?'':`<div class="ball"><svg width="30" height="30" viewBox="-15 -15 30 30">${ballInner(13)}</svg><span>공</span></div>`)}}
+  else if(ui.erase){b.className='strip';b.innerHTML='<button id="clr">화살표 전체 지우기</button>';$('clr').onclick=()=>confirmDlg('화살표를 모두 지울까요?',()=>{state.arrows=[];commit()})}
+  else{b.className='';const bl=state.roster.filter(r=>state.att[r.id]&&!onField(r.id)).sort(byNum);b.innerHTML=(bl.length?bl.map(r=>`<div class="bi" data-b="${r.id}"><i>${r.num}</i><span>${r.name}</span></div>`).join(''):'<span class="bt">벤치가 비었어요. 명단에서 참석자를 체크하세요.</span>')+(state.ball?'':`<div class="ball"><svg width="30" height="30" viewBox="-15 -15 30 30">${ballInner(13)}</svg><span>공</span></div>`)}}
 function ballInner(r){let pts=[],sp='';for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5,c=Math.cos(a),s=Math.sin(a);pts.push((c*r*.38)+','+(s*r*.38));sp+=`<line x1="${c*r*.38}" y1="${s*r*.38}" x2="${c*r*.9}" y2="${s*r*.9}" stroke="#222" stroke-width="${Math.max(1,r*.08)}"/>`}
   return`<circle r="${r}" fill="#fff" stroke="#222" stroke-width="${Math.max(1,r*.1)}"/>${sp}<polygon points="${pts.join(' ')}" fill="#222"/>`}
 function renderToolbar(){$('bArrow').className=ui.arrow?'on':'';$('bErase').className=ui.erase?'on':'';$('bOpp').className=state.opp.on?'on':''}
@@ -169,66 +171,36 @@ function arrowSvg(pts){ /* pts: px 좌표 배열 */
 
 function fxOf(id){const f=ui.fx[id];if(!f)return{sc:1,dx:0};const t=(performance.now()-f.t0)/f.ms;
   if(t>=1){delete ui.fx[id];return{sc:1,dx:0}}
+  if(f.k==='blink')return{sc:1+0.25*Math.abs(Math.sin(3*Math.PI*t)),dx:0};
   return f.k==='pop'?{sc:1+0.25*Math.sin(Math.PI*t),dx:0}:{sc:1,dx:4*Math.sin(6*Math.PI*t)*(1-t)}}
 
 function pieceSvg(p,opp,L){const cx=L.ox+p.x/100*L.W,cy=L.oy+p.y/100*L.H,r=L.d/2,f=fxOf(p.id),dr=ui.drag&&ui.drag.p===p&&ui.drag.moved;
   const fill=opp?(p.slot==='GK'?COLORS.oppGk:COLORS.opp):(p.slot==='GK'?COLORS.gk:'#fff'),stroke=opp?'#fff':COLORS.orange;
   const sc=f.sc*(dr?1.15:1),bR=Math.max(7,r*0.36),off=r*0.78;
   let g=`<g transform="translate(${cx+f.dx} ${cy})"${dr?' filter="url(#sh)"':''}><g transform="scale(${sc})"><circle r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>`;
-  if(!opp)g+=`<text text-anchor="middle" dominant-baseline="central" font-size="${L.d*0.5}" font-weight="800" fill="#000">+</text>`;
+  if(!opp){const pl=p.playerId&&P(p.playerId),tx=pl?pl.num:'+',n=tx.length,fs=L.d*(pl?(n===1?.5:n===2?.42:n===3?.3:.24):.5),nf=Math.max(10,L.d*.27);
+    g+=`<text text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="800" fill="#000">${tx}</text>`;
+    if(pl)g+=`<text y="${r+nf}" text-anchor="middle" font-size="${nf}" font-weight="800" fill="#fff" stroke="rgba(0,0,0,.85)" stroke-width="3" paint-order="stroke">${pl.name} · ${pl.num}</text>`}
   if(p.locked)g+=`<g transform="translate(${-off} ${-off})"><circle r="${bR}" fill="#222" stroke="#fff" stroke-width="1"/><rect x="${-bR*0.45}" y="${-bR*0.1}" width="${bR*0.9}" height="${bR*0.6}" fill="#fff"/><path d="M${-bR*0.28} ${-bR*0.1} v${-bR*0.25} a${bR*0.28} ${bR*0.28} 0 0 1 ${bR*0.56} 0 v${bR*0.25}" fill="none" stroke="#fff" stroke-width="1.4"/></g>`;
   return g+'</g></g>'}
 
-/* SVG는 크기가 달라질 때만 기본 구조를 만들고, 일반 드래그 중에는 동적인 레이어만 갱신한다. */
-function zoneMarkup(L){
-  let o='';
-  ZONE20.CELLS.forEach(c=>{
-    const x1=L.ox+ZONE20.X_PCT[c[1]]/100*L.W,x2=L.ox+ZONE20.X_PCT[c[2]]/100*L.W;
-    const y1=L.oy+ZONE20.Y_PCT[c[3]]/100*L.H,y2=L.oy+ZONE20.Y_PCT[c[4]]/100*L.H;
-    o+=`<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="none" stroke="${ZONE20.LINE_COLOR}" stroke-opacity="${ZONE20.LINE_OPACITY}" stroke-width="${ZONE20.LINE_W}"/>`;
-  });
-  return o;
-}
-function renderPitch(){
-  const svg=$('svg'),L=ui.L||(ui.L=geom());
-  if(!L||L.w<=0||L.h<=0)return;
-  const key=L.w.toFixed(2)+'|'+L.h.toFixed(2);
-  if(ui.pitchKey!==key||!ui.layers){
-    // 뷰포트 크기가 바뀌었을 때에만 잔디, 페널티 박스 등을 다시 생성
-    svg.setAttribute('width',L.w);svg.setAttribute('height',L.h);
-    svg.setAttribute('viewBox',`0 0 ${L.w} ${L.h}`);
-    svg.innerHTML=`<defs><filter id="sh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".55"/></filter></defs>`
-      +`<g id="fieldBase">${staticPitch(L)}</g><g id="arrowLayer"></g><g id="pieceLayer"></g><g id="ballLayer"></g><g id="zoneLayer" pointer-events="none"></g>`;
-    ui.layers={arrows:$('arrowLayer'),pieces:$('pieceLayer'),ball:$('ballLayer'),zones:$('zoneLayer')};
-    ui.pitchKey=key;ui.arrowDirty=true;ui.zonesRendered=null;
-  }
-  if(ui.arrowDirty){
-    let o='';
-    state.arrows.forEach(a=>{o+=arrowSvg(a.pts.map(q=>[L.ox+q[0]/100*L.W,L.oy+q[1]/100*L.H]))});
-    if(ui.path)o+=arrowSvg(ui.path);
-    ui.layers.arrows.innerHTML=o;ui.arrowDirty=false;
-  }
-  let pieces='';
+function renderPitch(){const svg=$('svg'),L=ui.L=geom();
+  if(L.w<=0)return;
+  svg.setAttribute('width',L.w);svg.setAttribute('height',L.h);svg.setAttribute('viewBox',`0 0 ${L.w} ${L.h}`);
+  let o=`<defs><filter id="sh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".55"/></filter></defs>`+staticPitch(L);
+  state.arrows.forEach(a=>{o+=arrowSvg(a.pts.map(q=>[L.ox+q[0]/100*L.W,L.oy+q[1]/100*L.H]))});
+  if(ui.path)o+=arrowSvg(ui.path);
   const list=[];state.our.pieces.forEach(p=>list.push([p,0]));
   if(state.opp.on)state.opp.pieces.forEach(p=>list.push([p,1]));
-  list.sort((a,b)=>a[0].z-b[0].z).forEach(([p,opp])=>{pieces+=pieceSvg(p,opp,L)});
-  ui.layers.pieces.innerHTML=pieces;
-  if(state.ball){
-    const b=state.ball,bx=L.ox+b.x/100*L.W,by=L.oy+b.y/100*L.H,br=L.br,bd=ui.drag&&ui.drag.ball&&ui.drag.moved;
-    ui.layers.ball.innerHTML=`<g transform="translate(${bx} ${by}) scale(${bd?1.2:1})"${bd?' filter="url(#sh)"':''}>${ballInner(br)}</g>`;
-  }else ui.layers.ball.innerHTML='';
-  if(ui.zonesRendered!==state.zones){
-    ui.layers.zones.innerHTML=state.zones?zoneMarkup(L):'';
-    ui.zonesRendered=state.zones;
-  }
-}
-// PointerEvent가 초당 수백 번 들어와도 렌더링은 화면 주사율에 맞춰 한 번만 수행
-let pendingPitchFrame=0;
-function schedulePitchRender(){
-  if(pendingPitchFrame)return;
-  pendingPitchFrame=requestAnimationFrame(()=>{pendingPitchFrame=0;renderPitch()});
-}
-function invalidatePitchLayout(){ui.L=null;ui.pitchKey='';schedulePitchRender()}
+  list.sort((a,b)=>a[0].z-b[0].z).forEach(([p,opp])=>{o+=pieceSvg(p,opp,L)});
+  if(state.ball){const b=state.ball,bx=L.ox+b.x/100*L.W,by=L.oy+b.y/100*L.H,br=L.br,bd=ui.drag&&ui.drag.ball&&ui.drag.moved;
+    o+=`<g transform="translate(${bx} ${by}) scale(${bd?1.2:1})"${bd?' filter="url(#sh)"':''}>${ballInner(br)}</g>`}
+  if(state.zones){ /* 20구역 파란 격자선: 맨 위에 그림 (말·화살표·공보다 위) */
+    o+=`<g pointer-events="none">`;
+    ZONE20.CELLS.forEach(c=>{const x1=L.ox+ZONE20.X_PCT[c[1]]/100*L.W,x2=L.ox+ZONE20.X_PCT[c[2]]/100*L.W,y1=L.oy+ZONE20.Y_PCT[c[3]]/100*L.H,y2=L.oy+ZONE20.Y_PCT[c[4]]/100*L.H;
+      o+=`<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="none" stroke="${ZONE20.LINE_COLOR}" stroke-opacity="${ZONE20.LINE_OPACITY}" stroke-width="${ZONE20.LINE_W}"/>`});
+    o+=`</g>`}
+  svg.innerHTML=o}
 
 /* ===== 애니메이션 ===== */
 let tick=false;
@@ -251,13 +223,11 @@ const clampP=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 svgEl.addEventListener('pointerdown',e=>{
   if(overlayOpen())return;
-  if(ui.activePointerId!==null)return;
-  ui.activePointerId=e.pointerId;
   const[x,y]=pt(e),L=ui.L;svgEl.setPointerCapture(e.pointerId);
-  if(ui.arrow){ui.path=[[clampP(x,L.ox,L.ox+L.W),clampP(y,L.oy,L.oy+L.H)]];ui.arrowDirty=true;schedulePitchRender();return}
+  if(ui.arrow){ui.path=[[clampP(x,L.ox,L.ox+L.W),clampP(y,L.oy,L.oy+L.H)]];renderPitch();return}
   if(ui.erase){let best=null,bd=ERASE_TOLERANCE;
     state.arrows.forEach((a,i)=>{const q=a.pts.map(v=>[L.ox+v[0]/100*L.W,L.oy+v[1]/100*L.H]);for(let k=0;k<q.length-1;k++){const dd=distSeg(x,y,q[k],q[k+1]);if(dd<=bd){bd=dd;best=i}}});
-    if(best!==null){state.arrows.splice(best,1);ui.arrowDirty=true;commit()}return}
+    if(best!==null){state.arrows.splice(best,1);commit()}return}
   if(state.ball){const b=state.ball;
     if(Math.hypot(x-(L.ox+b.x/100*L.W),y-(L.oy+b.y/100*L.H))<=Math.max(L.br,TOUCH_MIN_RADIUS)){ui.drag={p:b,ball:true,sx:x,sy:y,ox:b.x,oy:b.y,moved:false,fired:false};return}}
   const h=hit(x,y);if(!h)return;
@@ -266,120 +236,80 @@ svgEl.addEventListener('pointerdown',e=>{
   dg.timer=setTimeout(()=>{if(ui.drag!==dg||dg.moved)return;dg.fired=true;h.p.locked=!h.p.locked;
     if(h.p.locked&&navigator.vibrate)try{navigator.vibrate(30)}catch(_){}
     addFx(h.p.id,'pop',150);commit()},LONG_PRESS_MS);
-  schedulePitchRender()});
+  renderPitch()});
 
 svgEl.addEventListener('pointermove',e=>{
-  if(e.pointerId!==ui.activePointerId)return;
   const[x,y]=pt(e),L=ui.L;
   if(ui.path){const last=ui.path[ui.path.length-1],cx=clampP(x,L.ox,L.ox+L.W),cy=clampP(y,L.oy,L.oy+L.H);
-    if(Math.hypot(cx-last[0],cy-last[1])>=ARROW_MIN_SPACING){ui.path.push([cx,cy]);ui.arrowDirty=true;schedulePitchRender()}return}
+    if(Math.hypot(cx-last[0],cy-last[1])>=ARROW_MIN_SPACING){ui.path.push([cx,cy]);renderPitch()}return}
   const dg=ui.drag;if(!dg||dg.fired)return;
   if(!dg.moved){if(Math.hypot(x-dg.sx,y-dg.sy)<MOVE_THRESHOLD)return;clearTimeout(dg.timer);
     if(dg.p.locked){if(!dg.shook){dg.shook=true;addFx(dg.p.id,'shake',350)}return}
     dg.moved=true}
   if(dg.p.locked)return;
-  dg.p.x=clampP(dg.ox+(x-dg.sx)/L.W*100,0,100);dg.p.y=clampP(dg.oy+(y-dg.sy)/L.H*100,0,100);schedulePitchRender()});
+  dg.p.x=clampP(dg.ox+(x-dg.sx)/L.W*100,0,100);dg.p.y=clampP(dg.oy+(y-dg.sy)/L.H*100,0,100);renderPitch()});
 
 function endPtr(e,cancel){
-  if(e.pointerId!==ui.activePointerId)return;
-  ui.activePointerId=null;
-  if(ui.path){const L=ui.L,p=ui.path;
+  if(ui.path){const L=ui.L,p=ui.path;let len=0;for(let i=1;i<p.length;i++)len+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
     if(!cancel){const[x,y]=pt(e),last=p[p.length-1],cx=clampP(x,L.ox,L.ox+L.W),cy=clampP(y,L.oy,L.oy+L.H);if(Math.hypot(cx-last[0],cy-last[1])>0)p.push([cx,cy])}
-    let len=0;for(let i=1;i<p.length;i++)len+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
-    ui.path=null;ui.arrowDirty=true;
+    ui.path=null;
     if(len>=ARROW_MIN_LENGTH&&!cancel)state.arrows.push({type:'pass',pts:p.map(q=>[(q[0]-L.ox)/L.W*100,(q[1]-L.oy)/L.H*100])});
     commit();return}
   const dg=ui.drag;if(!dg)return;clearTimeout(dg.timer);ui.drag=null;
   if(dg.ball){const br=$('bench').getBoundingClientRect();if(dg.moved&&e.clientY>=br.top&&e.clientY<=br.bottom)state.ball=null;commit();return}
-  if(dg.moved){(dg.opp?state.opp:state.our).mod=true;commit()}else renderPitch()}
+  if(dg.moved){(dg.opp?state.opp:state.our).mod=true;commit()}else if(!dg.fired&&!dg.opp&&!ui.arrow&&!ui.erase)openSheet(dg.p);else renderPitch()}
 svgEl.addEventListener('pointerup',e=>endPtr(e,false));
 svgEl.addEventListener('pointercancel',e=>endPtr(e,true));
 
 /* ===== 버튼 ===== */
 function setMode(m){if(state.mode===m)return;
   const dirty=[state.our,state.opp].some(t=>t.mod||t.pieces.some(p=>p.locked||p.playerId));
-  const go=()=>{state.mode=m;state.our={mod:false,pieces:mk(m,0)};state.opp={on:state.opp.on,mod:false,pieces:mk(m,1)};commit()};
+  const go=()=>{const old=state.our.pieces;state.mode=m;state.our={mod:false,pieces:mk(m,0)};state.our.pieces.forEach((p,i)=>{p.playerId=old[i]?old[i].playerId:null});state.opp={on:state.opp.on,mod:false,pieces:mk(m,1)};commit()};
   dirty?confirmDlg('경기 방식을 바꾸면 말 배치가 바뀌고 잠금이 풀립니다. 계속할까요?',go):go()}
 $('m11').onclick=()=>setMode('11');$('m9').onclick=()=>setMode('9');
 $('bZone').onclick=()=>{state.zones=!state.zones;commit()};
-$('bArrow').onclick=()=>{ui.arrow=!ui.arrow;ui.erase=false;ui.path=null;ui.arrowDirty=true;renderAll()};
-$('bErase').onclick=()=>{ui.erase=!ui.erase;ui.arrow=false;ui.path=null;ui.arrowDirty=true;renderAll()};
+$('bArrow').onclick=()=>{ui.arrow=!ui.arrow;ui.erase=false;ui.path=null;renderAll()};
+$('bErase').onclick=()=>{ui.erase=!ui.erase;ui.arrow=false;renderAll()};
 $('bOpp').onclick=()=>{state.opp.on=!state.opp.on;commit()};
-$('bRoster').onclick=()=>toast('명단은 다음 단계에서 추가돼요');
-/* ===== PNG 내보내기 / 모바일 공유 ===== */
-// 화면 SVG를 그대로 캡처하지 않고 별도 SVG를 생성해 잠금, 드래그 효과, 메뉴가 이미지에 포함되지 않게 한다.
-const EXPORT_SCALE=2,EXPORT_METER_SCALE=10,EXPORT_TITLE_H=90;
-function exportPieceSvg(p,opp,L){
-  const cx=L.ox+p.x/100*L.W,cy=L.oy+p.y/100*L.H,r=L.d/2;
-  const fill=opp?(p.slot==='GK'?COLORS.oppGk:COLORS.opp):(p.slot==='GK'?COLORS.gk:'#fff');
-  const stroke=opp?'#fff':COLORS.orange;
-  return `<g transform="translate(${cx} ${cy})"><circle r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>`+
-         (opp?'':`<text text-anchor="middle" dominant-baseline="central" font-size="${L.d*0.5}" font-weight="800" fill="#000">+</text>`)+`</g>`;
-}
-function buildExportSvg(){
-  // 실제 68×105m 경기장을 10px/m 비율로 만들고 골대 바깥 여백을 보장한다.
-  const s=EXPORT_METER_SCALE,ox=.6*s,oy=(PITCH_M.goal+.6)*s,W=68*s,H=105*s;
-  const L={s,ox,oy,W,H,w:W+1.2*s,h:H+2*(PITCH_M.goal+.6)*s,d:Math.max(MIN_PIECE_PX,PIECE_RATIO*W),br:Math.max(BALL_MIN_R,BALL_RATIO*W)};
-  let o=staticPitch(L);
-  state.arrows.forEach(a=>{o+=arrowSvg(a.pts.map(q=>[L.ox+q[0]/100*L.W,L.oy+q[1]/100*L.H]))});
-  const pieces=[];state.our.pieces.forEach(p=>pieces.push([p,false]));
-  if(state.opp.on)state.opp.pieces.forEach(p=>pieces.push([p,true]));
-  pieces.sort((a,b)=>a[0].z-b[0].z).forEach(([p,opp])=>{o+=exportPieceSvg(p,opp,L)});
-  if(state.ball){const b=state.ball;o+=`<g transform="translate(${L.ox+b.x/100*L.W} ${L.oy+b.y/100*L.H})">${ballInner(L.br)}</g>`}
-  // 사용자가 올린 파일의 파란 20구역 선을 원본과 동일하게 표시
-  if(state.zones)o+=`<g pointer-events="none">${zoneMarkup(L)}</g>`;
-  const title=`${state.mode}:${state.mode} · ${FORMATIONS[state.mode][0].name}`;
-  return {width:L.w,height:L.h+EXPORT_TITLE_H,svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${L.w}" height="${L.h+EXPORT_TITLE_H}" viewBox="0 0 ${L.w} ${L.h+EXPORT_TITLE_H}" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif">`+
-    `<rect width="100%" height="100%" fill="#10231a"/>`+
-    `<rect width="${L.w}" height="${EXPORT_TITLE_H}" fill="#10231a"/>`+
-    `<text x="${L.w/2}" y="${EXPORT_TITLE_H/2}" dominant-baseline="middle" text-anchor="middle" font-size="38" font-weight="800" fill="#fff">${title}</text>`+
-    `<g transform="translate(0 ${EXPORT_TITLE_H})">${o}</g></svg>`};
-}
-async function generatePng(){
-  const data=buildExportSvg();
-  // 내보내는 픽셀 수는 2배로 유지해 확대해도 글자와 선이 선명하다.
-  const source='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data.svg);
-  const img=new Image();
-  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('SVG 이미지 변환 실패'));img.src=source});
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.round(data.width*EXPORT_SCALE);canvas.height=Math.round(data.height*EXPORT_SCALE);
-  const ctx=canvas.getContext('2d');if(!ctx)throw new Error('캔버스 사용 불가');
-  ctx.scale(EXPORT_SCALE,EXPORT_SCALE);ctx.drawImage(img,0,0,data.width,data.height);
-  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG 생성 실패')),'image/png'));
-  return blob;
-}
-function downloadPng(blob){
-  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
-  a.download='tactic-board.png';document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),30000);
-}
-function closeSaveSheet(){$('saveShade').classList.remove('show');$('saveSheet').classList.remove('show')}
-function openSaveSheet(){$('saveShade').classList.add('show');$('saveSheet').classList.add('show')}
-$('bSave').onclick=openSaveSheet;
-$('saveShade').onclick=closeSaveSheet;$('saveClose').onclick=closeSaveSheet;
-const SAVE_ERROR='카카오톡 안에서 열면 저장이나 공유가 안 될 수 있어요. 크롬이나 사파리에서 열어주세요.';
-async function handleImageAction(share){
-  const btn=$((share?'doImageShare':'doImageSave'));btn.disabled=true;
-  try{
-    const blob=await generatePng();
-    if(share&&typeof navigator.share==='function'&&typeof navigator.canShare==='function'){
-      const file=new File([blob],'tactic-board.png',{type:'image/png'});
-      if(navigator.canShare({files:[file]})){
-        try{await navigator.share({files:[file],title:'전술 바둑판'})}
-        catch(e){if(e&&e.name==='AbortError')return;throw e}
-      }else downloadPng(blob);
-    }else downloadPng(blob);
-    closeSaveSheet();
-  }catch(e){console.error('이미지 처리 오류:',e);alert(SAVE_ERROR)}
-  finally{btn.disabled=false}
-}
-$('doImageSave').onclick=()=>handleImageAction(false);
-$('doImageShare').onclick=()=>handleImageAction(true);
+$('bRoster').onclick=openDrawer;
+$('bSave').onclick=()=>toast('저장/공유는 다음 단계에서 추가돼요');
 $('bReset').onclick=()=>confirmDlg('말 위치와 화살표를 처음으로 되돌리고\n선수를 벤치로 보낼까요?',()=>{
   const pts=FORMATIONS[state.mode][0].pts,now=performance.now();
   [[state.our.pieces,0],[state.opp.pieces,1]].forEach(([ps,opp])=>ps.forEach((p,i)=>{
     ui.anim.push({p,fx:p.x,fy:p.y,tx:opp?100-pts[i][0]:pts[i][0],ty:opp?100-pts[i][1]:pts[i][1],t0:now,ms:PRESET_ANIM_MS});p.playerId=null}));
-  state.our.mod=false;state.opp.mod=false;state.arrows=[];ui.arrowDirty=true;state.ball=null;kick();commit()});
+  state.our.mod=false;state.opp.mod=false;state.arrows=[];state.ball=null;kick();commit()});
+
+/* ===== 명단 서랍 / 선수 선택 시트 ===== */
+const P=id=>state.roster.find(r=>r.id===id);
+const onField=id=>state.our.pieces.some(p=>p.playerId===id);
+const byNum=(a,b)=>(+a.num)-(+b.num)||(a.num<b.num?-1:a.num>b.num?1:0)||a.name.localeCompare(b.name,'ko');
+const match=(r,q)=>!q||(r.name+' '+r.num).toLowerCase().includes(q.trim().toLowerCase());
+ui.dq='';ui.sq='';ui.sp=null;
+function row(r,sheet){const f=onField(r.id),att=!!state.att[r.id],hl=sheet&&ui.sp.playerId===r.id,dim=sheet?(f&&!hl):f;
+  return`<div class="row${dim?' dim':''}"${hl?' style="background:#2b3a2f;border-radius:8px"':''}><label><input type="checkbox" data-c="${r.id}"${att?' checked':''}></label><span class="n" data-n="${r.id}">${r.name} · ${r.num}</span><span class="s">${f?'필드':att?'벤치':''}</span></div>`}
+function listHtml(sheet,q){const l=state.roster.filter(r=>match(r,q)).sort(byNum),a=l.filter(r=>state.att[r.id]);
+  if(sheet)return(a.length?'<div class="sec">오늘 참석자</div>'+a.map(r=>row(r,1)).join(''):'')+'<div class="sec">전체 명단</div>'+l.map(r=>row(r,1)).join('');
+  return'<div class="sec">오늘 참석</div>'+a.map(r=>row(r,0)).join('')+'<div class="sec">미참석</div>'+l.filter(r=>!state.att[r.id]).map(r=>row(r,0)).join('')}
+function renderLists(){const c=state.roster.filter(r=>state.att[r.id]).length;$('dcnt').textContent=`참석 ${c}명 / 전체 ${state.roster.length}명`;$('dls').innerHTML=listHtml(0,ui.dq);
+  if(ui.sp){const r=ui.sp.playerId&&P(ui.sp.playerId);$('shn').textContent=r?`${r.name} · ${r.num}`:'비어 있음';$('shb').style.display=r?'':'none';$('sls').innerHTML=listHtml(1,ui.sq)}}
+function openDrawer(){ui.dq='';$('dq').value='';$('drawer').classList.add('show');$('bk').classList.add('show');renderLists()}
+function openSheet(p){ui.sp=p;ui.sq='';$('sq').value='';$('sheet').classList.add('show');$('bk').classList.add('show');renderLists()}
+function closeAll(){['drawer','sheet','bk'].forEach(i=>$(i).classList.remove('show'));ui.sp=null}
+$('bk').onclick=closeAll;$('dcl').onclick=closeAll;$('shc').onclick=closeAll;
+$('dq').oninput=e=>{ui.dq=e.target.value;renderLists()};$('sq').oninput=e=>{ui.sq=e.target.value;renderLists()};
+$('shb').onclick=()=>{const p=ui.sp;if(p){p.playerId=null;closeAll();commit()}};
+$('datt').onclick=()=>confirmDlg('오늘 참석을 모두 초기화할까요?',()=>{state.att={};state.our.pieces.forEach(p=>p.playerId=null);commit()});
+function setAtt(id,on){if(on){state.att[id]=true;commit();return}
+  if(onField(id)){confirmDlg('필드에서도 빼시겠어요?',()=>{state.our.pieces.forEach(p=>{if(p.playerId===id)p.playerId=null});delete state.att[id];commit()});renderLists();return}
+  delete state.att[id];commit()}
+function onList(e,sheet){const c=e.target.closest('[data-c]');if(c&&e.type==='change'){setAtt(c.dataset.c,c.checked);return}
+  const n=e.type==='click'&&e.target.closest('[data-n]');if(!n)return;const id=n.dataset.n;
+  if(sheet){const f=state.our.pieces.find(p=>p.playerId===id);if(f&&f!==ui.sp)return;const p=ui.sp;p.playerId=id;state.att[id]=true;closeAll();commit();return}
+  if(!state.att[id])return;const pc=state.our.pieces.find(p=>p.playerId===id);
+  if(pc){closeAll();addFx(pc.id,'blink',1200);return}
+  const em=state.our.pieces.find(p=>!p.playerId);if(!em){toast('빈 말이 없어요');return}em.playerId=id;commit()}
+['click','change'].forEach(t=>{$('dls').addEventListener(t,e=>onList(e,0));$('sls').addEventListener(t,e=>onList(e,1))});
+$('bench').addEventListener('click',e=>{const b=e.target.closest('.bi');if(b){const r=P(b.dataset.b);if(r)toast(`${r.name} · ${r.num}`)}});
 
 /* ===== 벤치의 공을 필드로 드래그 (세로 방향 제스처만) ===== */
 $('bench').addEventListener('pointerdown',e=>{if(overlayOpen()||!e.target.closest('.ball'))return;ui.bd={x:e.clientX,y:e.clientY,on:false,g:null}});
@@ -397,8 +327,8 @@ window.addEventListener('pointerup',e=>endBd(e,true));window.addEventListener('p
 ['gesturestart','gesturechange','gestureend'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()));
 document.addEventListener('dblclick',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>e.preventDefault());
-window.addEventListener('resize',invalidatePitchLayout);window.addEventListener('orientationchange',invalidatePitchLayout);
-if(window.ResizeObserver)new ResizeObserver(invalidatePitchLayout).observe($('pw'));
+window.addEventListener('resize',renderPitch);window.addEventListener('orientationchange',renderPitch);
+if(window.ResizeObserver)new ResizeObserver(renderPitch).observe($('pw'));
 renderAll();
 </script>
 </body>
